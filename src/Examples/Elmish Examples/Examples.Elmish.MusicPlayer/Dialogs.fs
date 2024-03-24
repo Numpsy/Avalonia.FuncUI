@@ -2,33 +2,32 @@ namespace Examples.MusicPlayer
 
 
 module Dialogs =
-    open System
-    open Avalonia.Controls
+    open Avalonia
+    open Avalonia.Platform.Storage
 
-    let getMusicFilesDialog (filters: FileDialogFilter seq option) =
-        let dialog = OpenFileDialog()
+    let showMusicFilesDialog(provider: IStorageProvider, filters: FilePickerFileType List option) =
 
         let filters =
             match filters with
             | Some filter -> filter
             | None ->
-                let filter = FileDialogFilter()
-                filter.Extensions <-
-                    Collections.Generic.List
-                        (seq {
-                            "mp3"
-                            "wav" })
-                filter.Name <- "Music"
-                seq { filter }
+                let patterns = [ "*.mp3"; "*.wav" ]
+                let filter = FilePickerFileType("Music", Patterns = patterns)
+                List.singleton filter
 
-        dialog.AllowMultiple <- true
-        dialog.Directory <- Environment.GetFolderPath(Environment.SpecialFolder.MyMusic)
-        dialog.Title <- "Select Your Music Files"
-        dialog.Filters <- System.Collections.Generic.List(filters)
-        dialog
+        let options = FilePickerOpenOptions(AllowMultiple = true, Title = "Select Your Music Files", FileTypeFilter = filters)
 
-    let getFolderDialog =
-        let dialog = OpenFolderDialog()
-        dialog.Directory <- Environment.GetFolderPath(Environment.SpecialFolder.MyMusic)
-        dialog.Title <- "Choose where to look up for music"
-        dialog
+        task {
+            let! musicFolder = provider.TryGetWellKnownFolderAsync Platform.Storage.WellKnownFolder.Music
+            options.SuggestedStartLocation <- musicFolder
+
+            return! provider.OpenFilePickerAsync options
+        }
+
+    let showMusicFolderDialog(provider: IStorageProvider) =
+        task {
+            let! musicFolder = provider.TryGetWellKnownFolderAsync Platform.Storage.WellKnownFolder.Music
+            let options = FolderPickerOpenOptions(Title = "Choose where to look up for music", SuggestedStartLocation = musicFolder)
+
+            return! provider.OpenFolderPickerAsync options
+        }
