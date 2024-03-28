@@ -124,10 +124,10 @@ module Shell =
             window.Title <- title
             { state with title = title }, Cmd.none
         | OpenFiles ->
-            let showDialog storageProvider = Dialogs.showMusicFilesDialog (storageProvider, None) |> Async.AwaitTask
+            let showDialog storageProvider = Dialogs.showMusicFilesDialog (storageProvider, None)
             state, Cmd.OfAsync.perform showDialog window.StorageProvider AfterSelectFiles
         | OpenFolder ->
-            let showDialog storageProvider = Dialogs.showMusicFolderDialog storageProvider |> Async.AwaitTask
+            let showDialog storageProvider = Dialogs.showMusicFolderDialog storageProvider
             state, Cmd.OfAsync.perform showDialog window.StorageProvider AfterSelectFolder
         | AfterSelectFolder path ->
             let songs = Songs.populateFromFolders path |> Array.toList

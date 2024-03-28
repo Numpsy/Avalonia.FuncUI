@@ -1,11 +1,12 @@
 namespace Examples.MusicPlayer
 
-
 module Dialogs =
     open Avalonia
     open Avalonia.Platform.Storage
+    open Avalonia.Threading
+    open System.Collections.Generic
 
-    let showMusicFilesDialog(provider: IStorageProvider, filters: FilePickerFileType List option) =
+    let showMusicFilesDialog(provider: IStorageProvider, filters: FilePickerFileType list option) =
 
         let filters =
             match filters with
@@ -13,21 +14,26 @@ module Dialogs =
             | None ->
                 let patterns = [ "*.mp3"; "*.wav" ]
                 let filter = FilePickerFileType("Music", Patterns = patterns)
-                List.singleton filter
+                [ filter ]
 
         let options = FilePickerOpenOptions(AllowMultiple = true, Title = "Select Your Music Files", FileTypeFilter = filters)
 
-        task {
-            let! musicFolder = provider.TryGetWellKnownFolderAsync Platform.Storage.WellKnownFolder.Music
+        async {
+            let! musicFolder = provider.TryGetWellKnownFolderAsync Platform.Storage.WellKnownFolder.Music |> Async.AwaitTask
             options.SuggestedStartLocation <- musicFolder
 
-            return! provider.OpenFilePickerAsync options
+            return!
+                Dispatcher.UIThread.InvokeAsync<IReadOnlyList<IStorageFile>>
+                    (fun _ -> provider.OpenFilePickerAsync(options)) |> Async.AwaitTask
         }
 
     let showMusicFolderDialog(provider: IStorageProvider) =
-        task {
-            let! musicFolder = provider.TryGetWellKnownFolderAsync Platform.Storage.WellKnownFolder.Music
+        async {
+            let! musicFolder = provider.TryGetWellKnownFolderAsync Platform.Storage.WellKnownFolder.Music |> Async.AwaitTask
             let options = FolderPickerOpenOptions(Title = "Choose where to look up for music", SuggestedStartLocation = musicFolder)
+            
+            return!
+                Dispatcher.UIThread.InvokeAsync<IReadOnlyList<IStorageFolder>>
+                    (fun _ -> provider.OpenFolderPickerAsync(options)) |> Async.AwaitTask
 
-            return! provider.OpenFolderPickerAsync options
         }
